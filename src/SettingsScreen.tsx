@@ -4,10 +4,8 @@ import theme from "./theme";
 import { Linking } from "expo";
 import Constants from "expo-constants";
 import {
-  Header,
   Row,
   Container,
-  IconButton,
   SubHeader,
   Paragraph,
   RoundedSelectorButton,
@@ -27,7 +25,6 @@ import {
   HistoryButtonLabelSetting,
   isHistoryButtonLabelSetting,
 } from "./setting";
-import i18n from "./i18n";
 import { recordScreenCallOnFocus } from "./navigation";
 import { isGrandfatheredIntoFreeSubscription } from "./history/grandfatherstore";
 import OneSignal from "react-native-onesignal";
@@ -36,6 +33,7 @@ import * as stats from "./stats";
 import { FadesIn } from "./animations";
 import { latestExpirationDate } from "./payments";
 import dayjs from "dayjs";
+import { hasPincode, removePincode } from "./lock/lockstore";
 
 export { HistoryButtonLabelSetting };
 
@@ -74,6 +72,10 @@ const Feedback = () => (
       title={"Email Feedback"}
       fillColor="#EDF0FC"
       textColor={theme.darkBlue}
+      style={{
+        borderWidth: 0,
+        borderBottomWidth: 0,
+      }}
       width={"100%"}
       onPress={() => {
         Linking.openURL(
@@ -88,9 +90,13 @@ const CancelationInstructions = () => {
   return (
     <ActionButton
       flex={1}
-      title={"Cancelation Instructions"}
+      title={"Cancellation Instructions"}
       fillColor="#EDF0FC"
       textColor={theme.darkBlue}
+      style={{
+        borderWidth: 0,
+        borderBottomWidth: 0,
+      }}
       onPress={() => {
         if (Platform.OS === "android") {
           Linking.openURL(
@@ -168,6 +174,7 @@ interface State {
   isGrandfatheredIntoSubscription?: boolean;
   subscriptionExpirationDate?: string;
   areNotificationsOn?: boolean;
+  shouldShowRemovePincode?: boolean;
 }
 
 class SettingScreen extends React.Component<Props, State> {
@@ -181,6 +188,7 @@ class SettingScreen extends React.Component<Props, State> {
       isReady: false,
       isGrandfatheredIntoSubscription: false,
       areNotificationsOn: false,
+      shouldShowRemovePincode: false,
     };
     recordScreenCallOnFocus(this.props.navigation, "settings");
   }
@@ -195,8 +203,10 @@ class SettingScreen extends React.Component<Props, State> {
 
   refresh = async () => {
     const historyButtonLabel = await getHistoryButtonLabel();
+    const shouldShowRemovePincode = await hasPincode();
     this.setState({
       historyButtonLabel,
+      shouldShowRemovePincode,
     });
 
     // Check subscription status
@@ -334,16 +344,47 @@ class SettingScreen extends React.Component<Props, State> {
               </Paragraph>
               <ActionButton
                 flex={1}
-                title={"Set Pincode"}
+                title={
+                  this.state.shouldShowRemovePincode
+                    ? "Reset Pincode"
+                    : "Set Pincode"
+                }
                 width={"100%"}
                 fillColor="#EDF0FC"
                 textColor={theme.darkBlue}
+                style={{
+                  borderWidth: 0,
+                  borderBottomWidth: 0,
+                }}
                 onPress={() => {
                   this.props.navigation.navigate(LOCK_SCREEN, {
                     isSettingCode: true,
                   });
+                  this.setState({
+                    shouldShowRemovePincode: true,
+                  });
                 }}
               />
+              {this.state.shouldShowRemovePincode && (
+                <ActionButton
+                  flex={1}
+                  title={"Remove Pincode"}
+                  width={"100%"}
+                  fillColor="#EDF0FC"
+                  textColor={theme.darkBlue}
+                  style={{
+                    borderWidth: 0,
+                    borderBottomWidth: 0,
+                    marginTop: 6,
+                  }}
+                  onPress={async () => {
+                    await removePincode();
+                    this.setState({
+                      shouldShowRemovePincode: false,
+                    });
+                  }}
+                />
+              )}
             </Row>
 
             <Row

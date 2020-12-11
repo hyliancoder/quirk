@@ -11,6 +11,7 @@ import theme from "./theme";
 import { Feather } from "@expo/vector-icons";
 import distortions, { CognitiveDistortion } from "./distortions";
 import { find } from "lodash";
+import shadowStyle from "./shadowStyle";
 
 export interface ParentComponent {
   children: any;
@@ -69,6 +70,7 @@ export const Header = ({
     }}
     textBreakStrategy={"simple"}
     allowFontScaling={allowFontScaling}
+    maxFontSizeMultiplier={1}
   >
     {children}
   </Text>
@@ -269,8 +271,8 @@ export const RoundedSelectorButton = ({
       backgroundColor: selected ? theme.blue : "white",
       borderColor: selected ? theme.darkBlue : theme.lightGray,
       borderBottomWidth: 2,
-      paddingTop: 8,
-      paddingBottom: 8,
+      paddingTop: 12,
+      paddingBottom: 12,
       paddingRight: 12,
       borderRadius: 8,
       borderWidth: 1,
@@ -283,7 +285,7 @@ export const RoundedSelectorButton = ({
     <View style={{ flexDirection: "row" }}>
       <Text
         style={{
-          fontWeight: "400",
+          fontWeight: "700",
           fontSize: 16,
           color: selected ? "white" : theme.darkText,
           marginLeft: 12,
@@ -307,16 +309,11 @@ export const FloatingCard = ({
   <View
     style={{
       backgroundColor: "white",
-      borderWidth: 2,
-      borderColor: theme.blue,
+      borderWidth: 1,
+      borderColor: theme.lightGray,
       borderRadius: 8,
       padding: 24,
-      elevation: 1,
-      shadowColor: theme.lightGray,
-      shadowOffset: { width: 0, height: 1 },
-      shadowRadius: 10,
-      shadowOpacity: 0.8,
-      width: "100%",
+      ...shadowStyle,
       ...style,
     }}
   >
@@ -333,7 +330,7 @@ export const GhostButtonWithGuts = ({
   style,
 }: {
   onPress: () => void;
-  borderColor: string;
+  borderColor?: string;
   disabled?: boolean;
   flex?: number;
   children: any;
@@ -343,7 +340,7 @@ export const GhostButtonWithGuts = ({
     style={{
       padding: 12,
       borderRadius: 10,
-      borderColor: borderColor,
+      borderColor: borderColor || theme.lightGray,
       borderWidth: 1,
       borderBottomWidth: 2,
       flex,
@@ -370,8 +367,8 @@ export const GhostButton = ({
 }: {
   title: string;
   onPress: () => void;
-  borderColor: string;
-  textColor: string;
+  borderColor?: string;
+  textColor?: string;
   width?: number | string;
   height?: number;
   disabled?: boolean;
@@ -385,7 +382,7 @@ export const GhostButton = ({
       borderRadius: 10,
       justifyContent: "center",
       alignItems: "center",
-      borderColor: borderColor,
+      borderColor: borderColor || theme.gray,
       borderWidth: 1,
       borderBottomWidth: 2,
       maxHeight: 48,
@@ -400,7 +397,7 @@ export const GhostButton = ({
     <Text
       style={{
         textAlign: "center",
-        color: textColor,
+        color: textColor || theme.darkText,
         fontWeight: "700",
         fontSize: fontSize || 16,
       }}
@@ -440,9 +437,13 @@ export const ActionButton = ({
       justifyContent: "center",
       alignItems: "center",
       maxHeight: 48,
+      borderColor: theme.darkBlue,
+      borderWidth: 1,
+      borderBottomWidth: 2,
       width,
       height,
       flex,
+      opacity: disabled ? 0.3 : 1,
       ...style,
     }}
     disabled={disabled}
@@ -455,6 +456,7 @@ export const ActionButton = ({
         fontWeight: "700",
         fontSize: 16,
       }}
+      maxFontSizeMultiplier={1.2}
     >
       {title}
     </Text>
@@ -472,12 +474,14 @@ export const IconButton = ({
   accessibilityLabel,
   onPress,
   style,
+  iconSize,
   hasBadge,
 }: {
   featherIconName: string;
   accessibilityLabel: string;
   onPress: () => void;
   style?: object;
+  iconSize?: number;
   hasBadge?: boolean;
 }) => (
   <TouchableOpacity
@@ -508,7 +512,11 @@ export const IconButton = ({
         }}
       />
     )}
-    <Feather name={featherIconName} size={24} color={theme.veryLightText} />
+    <Feather
+      name={featherIconName}
+      size={iconSize || 24}
+      color={theme.veryLightText}
+    />
   </TouchableOpacity>
 );
 
@@ -554,7 +562,7 @@ Container.propTypes = {
   children: PropTypes.any,
 };
 
-export const Label = ({ children, ...style }) => (
+export const Label = ({ children, style }: { children: any; style?: any }) => (
   <Text
     style={{
       fontWeight: "700",
@@ -591,6 +599,69 @@ export const I = ({ children }) => (
   <Text style={{ fontStyle: "italic" }}>{children}</Text>
 );
 
-export const B = ({ children }) => (
-  <Text style={{ fontWeight: "bold" }}>{children}</Text>
+export const B = ({ children, style }: { children: any; style?: any }) => (
+  <Text style={{ fontWeight: "bold", ...style }}>{children}</Text>
+);
+
+export const LI = ({ children }) => (
+  <Text
+    style={{
+      fontSize: 16,
+      color: theme.lightText,
+      marginBottom: 4,
+    }}
+  >{`\u2022 ${children}`}</Text>
+);
+
+export const Badge = ({
+  text,
+  backgroundColor,
+  featherIconName,
+  style,
+}: {
+  text: string;
+  backgroundColor?: string;
+  featherIconName: string;
+  style?: any;
+}) => (
+  <View
+    style={{
+      backgroundColor: backgroundColor || theme.lightBlue,
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingTop: 12,
+      borderRadius: 8,
+      justifyContent: "space-between",
+      flex: 1,
+      flexDirection: "row",
+      ...style,
+    }}
+  >
+    <Text
+      style={{
+        fontWeight: "700",
+        color: theme.lightText,
+        fontSize: 14,
+      }}
+      maxFontSizeMultiplier={1.2}
+    >
+      {text}
+    </Text>
+    <Feather name={featherIconName} size={16} color={theme.lightText} />
+  </View>
+);
+
+export const CapsLabel = ({ children, style }) => (
+  <Text
+    style={{
+      fontSize: 10,
+      fontWeight: "700",
+      color: theme.lightText,
+      letterSpacing: 1,
+      ...style,
+    }}
+  >
+    {children}
+  </Text>
 );

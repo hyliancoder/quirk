@@ -6,11 +6,19 @@ import Constants from "expo-constants";
 import theme from "../theme";
 import { StatusBar, Platform } from "react-native";
 import * as stats from "../stats";
-import { FINISHED_SCREEN } from "./screens";
+import { FOLLOW_UP_REQUEST_SCREEN } from "./screens";
 import { get } from "lodash";
-import { saveExercise, countThoughts } from "../thoughtstore";
+import { saveThought, countThoughts } from "../thoughtstore";
 import haptic from "../haptic";
 import * as StoreReview from "react-native-store-review";
+import { scheduleBoost } from "./pulse/pulsestore";
+import {
+  START_THOUGHT,
+  FELT_BETTER,
+  FIVE_THOUGHTS,
+  TEN_THOUGHTS,
+  TWENTY_THOUGHTS,
+} from "./pulse/constants";
 
 export default class FeelingScreen extends React.Component<
   ScreenProps,
@@ -22,8 +30,22 @@ export default class FeelingScreen extends React.Component<
     header: null,
   };
 
+  constructor(props) {
+    super(props);
+    this.state = {
+      thought: undefined, // yes, really. Trust me this fixed a bug.
+    };
+  }
+
   componentDidMount() {
     this.props.navigation.addListener("willFocus", args => {
+      const thought = get(args, "state.params.thought");
+      this.setState({
+        thought,
+      });
+    });
+
+    this.props.navigation.addListener("didFocus", args => {
       const thought = get(args, "state.params.thought");
       this.setState({
         thought,
@@ -36,11 +58,27 @@ export default class FeelingScreen extends React.Component<
   ): Promise<Thought> => {
     const thought = this.state.thought;
     thought.immediateCheckup = feeling;
-    return saveExercise(this.state.thought);
+    return saveThought(this.state.thought);
+  };
+
+  _sendStandardBoosts = async () => {
+    await scheduleBoost(START_THOUGHT);
+
+    const numPreviousThoughts = await countThoughts();
+    if (numPreviousThoughts === 5) {
+      await scheduleBoost(FIVE_THOUGHTS);
+    }
+    if (numPreviousThoughts === 10) {
+      await scheduleBoost(TEN_THOUGHTS);
+    }
+    if (numPreviousThoughts === 20) {
+      await scheduleBoost(TWENTY_THOUGHTS);
+    }
   };
 
   onFeltBetter = async () => {
     haptic.selection();
+    stats.userFeltBetter();
     const thought = await this.saveCheckup("better");
 
     if (Platform.OS === "ios") {
@@ -54,8 +92,10 @@ export default class FeelingScreen extends React.Component<
       }
     }
 
-    stats.userFeltBetter();
-    this.props.navigation.navigate(FINISHED_SCREEN, {
+    await scheduleBoost(FELT_BETTER);
+    await this._sendStandardBoosts();
+
+    this.props.navigation.navigate(FOLLOW_UP_REQUEST_SCREEN, {
       thought,
     });
   };
@@ -64,8 +104,10 @@ export default class FeelingScreen extends React.Component<
     haptic.selection();
     const thought = await this.saveCheckup("same");
 
+    await this._sendStandardBoosts();
+
     stats.userFeltTheSame();
-    this.props.navigation.navigate(FINISHED_SCREEN, {
+    this.props.navigation.navigate(FOLLOW_UP_REQUEST_SCREEN, {
       thought,
     });
   };
@@ -74,13 +116,19 @@ export default class FeelingScreen extends React.Component<
     haptic.selection();
     const thought = await this.saveCheckup("worse");
 
+    await this._sendStandardBoosts();
+
     stats.userFeltWorse();
-    this.props.navigation.navigate(FINISHED_SCREEN, {
+    this.props.navigation.navigate(FOLLOW_UP_REQUEST_SCREEN, {
       thought,
     });
   };
 
   render() {
+    if (!this.state.thought) {
+      return <Container />;
+    }
+
     return (
       <Container
         style={{

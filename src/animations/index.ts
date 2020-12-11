@@ -6,6 +6,11 @@ export const FadesIn = posed.View({
   hidden: { opacity: 0, y: -10 },
 });
 
+export const FadesInAndShrinks = posed.View({
+  visible: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, y: -100 },
+});
+
 export const BouncyBigOnActive = posed.View({
   active: { scale: 1, transition: { type: "spring", stiffness: 200 } },
   inactive: { scale: 0.5 },
@@ -24,6 +29,11 @@ export const newPopsUp = ({ fullHeight, hiddenHeight, popUpScale }) =>
       height:
         Platform.OS === "ios" ? fullHeight * popUpScale : fullHeight * 0.6,
       transition: { type: "spring", duration: 200 },
+    },
+    peakNoBounce: {
+      height:
+        Platform.OS === "ios" ? fullHeight * popUpScale : fullHeight * 0.6,
+      transition: { duration: 0, ease: "easeOut" },
     },
     full: {
       height: fullHeight,

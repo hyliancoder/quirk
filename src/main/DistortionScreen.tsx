@@ -14,12 +14,15 @@ import {
 import Constants from "expo-constants";
 import theme from "../theme";
 import { Text, ScrollView, View } from "react-native";
-import { FadesIn } from "../animations";
 import { Thought } from "../thoughts";
 import * as stats from "../stats";
 import haptic from "../haptic";
-import { CHALLENGE_SCREEN, THOUGHT_SCREEN, FINISHED_SCREEN } from "./screens";
-import { saveExercise } from "../thoughtstore";
+import {
+  CHALLENGE_SCREEN,
+  FINISHED_SCREEN,
+  AUTOMATIC_THOUGHT_SCREEN,
+} from "./screens";
+import { saveThought } from "../thoughtstore";
 import i18n from "../i18n";
 import * as Haptic from "expo-haptics";
 
@@ -46,29 +49,27 @@ export default class DistortionScreen extends React.Component<
   constructor(props) {
     super(props);
     this.props.navigation.addListener("willFocus", args => {
-      const thought = get(args, "state.params.thought", "🤷‍");
-      const isEditing = get(args, "state.params.isEditing", false);
-      this.setState({
-        thought,
-        isEditing,
-      });
+      this.refreshFromNavigation(args);
+    });
+
+    this.props.navigation.addListener("didFocus", args => {
+      this.refreshFromNavigation(args);
     });
   }
 
-  componentDidMount() {
-    // We fade this in slightly AFTER the thought, so the user
-    // sees them as seperate entities.
-    setTimeout(() => {
-      this.setState({
-        shouldShowDistortions: true,
-      });
-    }, 400);
-  }
+  refreshFromNavigation = args => {
+    const thought = get(args, "state.params.thought", "🤷‍");
+    const isEditing = get(args, "state.params.isEditing", false);
+    this.setState({
+      thought,
+      isEditing,
+    });
+  };
 
   // From editing
   onFinish = async () => {
     haptic.impact(Haptic.ImpactFeedbackStyle.Light);
-    const thought = await saveExercise(this.state.thought);
+    const thought = await saveThought(this.state.thought);
     this.props.navigation.push(FINISHED_SCREEN, {
       thought,
     });
@@ -93,8 +94,15 @@ export default class DistortionScreen extends React.Component<
     stats.userCheckedDistortion(selected);
   };
 
+  onBackToThought = async () => {
+    const thought = await saveThought(this.state.thought);
+    this.props.navigation.navigate(AUTOMATIC_THOUGHT_SCREEN, {
+      thought: thought,
+    });
+  };
+
   onNext = async () => {
-    const thought = await saveExercise(this.state.thought);
+    const thought = await saveThought(this.state.thought);
     this.props.navigation.push(CHALLENGE_SCREEN, {
       thought,
     });
@@ -111,7 +119,7 @@ export default class DistortionScreen extends React.Component<
         <ScrollView
           style={{
             backgroundColor: theme.lightOffwhite,
-            marginTop: Constants.statusBarHeight,
+            marginTop: Constants.statusBarHeight + 24,
           }}
         >
           <Container
@@ -140,24 +148,20 @@ export default class DistortionScreen extends React.Component<
                   <SubHeader>Your Thought</SubHeader>
                   <GhostButtonWithGuts
                     borderColor={theme.lightGray}
-                    onPress={() => this.props.navigation.pop()}
+                    onPress={() => this.onBackToThought()}
                   >
                     <Text>{this.state.thought.automaticThought}</Text>
                   </GhostButtonWithGuts>
                 </View>
 
-                <FadesIn
-                  pose={this.state.shouldShowDistortions ? "visible" : "hidden"}
-                >
-                  <SubHeader>Common Distortions</SubHeader>
-                  <HintHeader>
-                    Tap any of these that apply to your current situation.
-                  </HintHeader>
-                  <RoundedSelector
-                    items={this.state.thought.cognitiveDistortions}
-                    onPress={this.onPressSlug}
-                  />
-                </FadesIn>
+                <SubHeader>Common Distortions</SubHeader>
+                <HintHeader>
+                  Tap any of these that apply to your current situation.
+                </HintHeader>
+                <RoundedSelector
+                  items={this.state.thought.cognitiveDistortions}
+                  onPress={this.onPressSlug}
+                />
               </>
             )}
           </Container>
@@ -188,13 +192,13 @@ export default class DistortionScreen extends React.Component<
               <GhostButton
                 borderColor={theme.lightGray}
                 textColor={theme.veryLightText}
-                title={"Back to Thought"}
+                title={"Back"}
                 style={{
                   marginRight: 24,
                   flex: 1,
                 }}
                 onPress={() => {
-                  this.props.navigation.navigate(THOUGHT_SCREEN, {
+                  this.props.navigation.navigate(AUTOMATIC_THOUGHT_SCREEN, {
                     thought: this.state.thought,
                   });
                 }}

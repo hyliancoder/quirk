@@ -1,3 +1,11 @@
+# WIP: It's probably not the best time to translate Quirk.
+
+🚨🚨🚨 Translations are a bit broken at the moment while we migrate to a Fluent+Pontoon instance instead of json files. 
+
+----
+----
+----
+
 # How to contribute a new language
 
 ## Create a JSON file
